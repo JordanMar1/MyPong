@@ -36,7 +36,8 @@ paddle = pygame.mixer.Sound("paddle.ogg")
 score = pygame.mixer.Sound("score.ogg")
 window = Tk()
 window.title("PONG")
-window.attributes('-fullscreen', True)
+if "-fs" in sys.argv:
+    window.attributes('-fullscreen', True)
 window.configure(bg="black")
 
 #####################################################################
@@ -114,8 +115,8 @@ move_j2 = {'up': False, 'down': False}
 #####################################################################
 
 def update_p_positions():
-    bot_mode = len(sys.argv) > 1 and sys.argv[1] in ("-b", "-fb")
-    if len(sys.argv) > 1 and sys.argv[1] == "-fb":
+    bot_mode = len(sys.argv) > 1 and "-b" in sys.argv or "-fb" in sys.argv
+    if len(sys.argv) > 1 and "-fb" in sys.argv:
         manage_bot(coords1)
     else:
         if move_j1['up'] and coords1[1] > 0:
