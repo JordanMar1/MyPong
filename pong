@@ -1,0 +1,285 @@
+#!/usr/bin/env python3
+
+from tkinter import *
+from math import asin
+from math import pi
+from math import sqrt
+import time
+from random import randint
+import sys
+import pygame
+
+
+class FPSCounter:
+    def __init__(self, canvas):
+        self.canvas = canvas
+        self.last_time = time.time()
+        self.fps_text = self.canvas.create_text(
+            10, 10, anchor="nw", text="FPS: 0", fill="white", font=("Arial", 14)
+        )
+
+    def update(self):
+        current_time = time.time()
+        delta = current_time - self.last_time
+        self.last_time = current_time
+        if delta > 0:
+            fps = int(1 / delta)
+            self.canvas.itemconfig(self.fps_text, text=f"FPS: {fps}")
+#####################################################################
+
+#                             WINDOW
+
+#####################################################################
+pygame.mixer.init()
+wall = pygame.mixer.Sound("wall.ogg")
+paddle = pygame.mixer.Sound("paddle.ogg")
+score = pygame.mixer.Sound("score.ogg")
+window = Tk()
+window.title("PONG")
+window.attributes('-fullscreen', True)
+window.configure(bg="black")
+
+#####################################################################
+
+#                             PHOTO
+
+#####################################################################
+
+photo = PhotoImage(file="pong.png")
+background = Canvas(window, width = 800, height = 800)
+window.configure(cursor="none")
+background.create_image(0, 0, anchor = NW, image = photo)
+
+#####################################################################
+
+#                           POSITIONS
+
+#####################################################################
+b_width = 25
+b_height = 25
+width = 20
+height = 100
+coords1 = [15, 400]
+coords2 = [785 - width, 400]
+coords_b = [400, 375]
+
+#####################################################################
+
+#                      SPRITE P1, P2 AND BALL
+
+#####################################################################
+
+joueur1 = background.create_rectangle(coords1[0], coords1[1], coords1[0] + width, coords1[1] + height, fill="white")
+joueur2 = background.create_rectangle(coords2[0], coords2[1], coords2[0] + width, coords2[1] + height, fill="white")
+ball = background.create_oval(coords_b[0], coords_b[1], coords_b[0] + b_width, coords_b[1] + b_height, fill="white")
+score_J1 = 0
+score_J2 = 0
+txt_score1 = background.create_text(194, 188, text = score_J1, font="LiberationSansNarrow 30", fill="white")
+txt_score2 = background.create_text(580, 188, text = score_J2, font="LiberationSansNarrow 30", fill="white")
+background.pack()
+fps_counter = FPSCounter(background)
+vitesse_hz = 3
+vitesse_vt = 0
+
+######################################################################
+
+# BOT SYSTEM
+
+######################################################################
+
+def manage_bot(coords):
+    tolerance = height / 4 
+    bot_center = coords[1] + height / 2
+    ball_center = coords_b[1]
+    if ball_center < bot_center - tolerance and coords[1] > 0:
+        coords[1] -= 7
+    elif ball_center > bot_center + tolerance and coords[1] < 800 - height:
+        coords[1] += 7
+
+
+
+#####################################################################
+
+#                        CONTROLS STATE
+
+#####################################################################
+
+move_j1 = {'up': False, 'down': False}
+move_j2 = {'up': False, 'down': False}
+
+#####################################################################
+
+#                         POSITIONS UPDATE
+
+#####################################################################
+
+def update_p_positions():
+    bot_mode = len(sys.argv) > 1 and sys.argv[1] in ("-b", "-fb")
+    if len(sys.argv) > 1 and sys.argv[1] == "-fb":
+        manage_bot(coords1)
+    else:
+        if move_j1['up'] and coords1[1] > 0:
+            coords1[1] -= 15
+        if move_j1['down'] and coords1[1] < 800 - height:
+            coords1[1] += 15
+    if bot_mode:
+        manage_bot(coords2)
+    else:
+        if move_j2['up'] and coords2[1] > 0:
+            coords2[1] -= 15
+        if move_j2['down'] and coords2[1] < 800 - height:
+            coords2[1] += 15
+    background.coords(joueur1, coords1[0], coords1[1], coords1[0] + width, coords1[1] + height)
+    background.coords(joueur2, coords2[0], coords2[1], coords2[0] + width, coords2[1] + height)
+    window.after(10, update_p_positions)
+
+#####################################################################
+
+#                          KEYS STATE
+
+######################################################################
+
+def on_key_press(event):
+    if event.keysym == "z":
+        move_j1['up'] = True
+    elif event.keysym == "s":
+        move_j1['down'] = True
+    elif event.keysym == "Up":
+        move_j2['up'] = True
+    elif event.keysym == "Down":
+        move_j2['down'] = True
+
+def on_key_release(event):
+    if event.keysym == "z":
+        move_j1['up'] = False
+    elif event.keysym == "s":
+        move_j1['down'] = False
+    elif event.keysym == "Up":
+        move_j2['up'] = False
+    elif event.keysym == "Down":
+        move_j2['down'] = False
+
+######################################################################
+
+#                        KEY BINDINGS
+
+######################################################################
+
+background.bind("<KeyPress>", on_key_press)
+background.bind("<KeyRelease>", on_key_release)
+background.focus_set()
+
+#####################################################################
+
+#                           SCORING
+
+######################################################################
+
+def update_score():
+    global score_J1, score_J2
+    
+    if score_J1 != 15 and score_J2 != 15:
+        background.itemconfig(txt_score1, text=score_J1)
+        background.itemconfig(txt_score2, text=score_J2)
+    elif score_J1 >= 15:
+        background.itemconfig(txt_score1, text = "VICTORY", fill = "green", font = "NotoSerifKhmer 30")
+        background.itemconfig(txt_score2, text = "LOOSE", fill = "red", font = "NotoSerifKhmer 30")
+        background.coords(ball, 250, 800, 250 + width, 800 + height)
+        background.itemconfig(ball, fill = "black")
+        window.after(3000, window.destroy)
+    elif score_J2 >= 15:
+        background.itemconfig(txt_score1, text = "LOOSE", fill = "red", font = "NotoSerifKhmer 30")
+        background.itemconfig(txt_score2, text = "VICTORY", fill = "green", font = "NotoSerifKhmer 30")
+        background.coords(ball, 250, 800, 250 + width, 800 + height)
+        background.itemconfig(ball, fill = "black")
+        window.after(3000, window.destroy)
+    window.after(1, update_score)
+
+
+######################################################################
+
+#                         BALL SPEED
+
+#######################################################################
+
+def change_speed(vitesse_hz):
+    if (vitesse_hz < 0):
+        if (vitesse_hz <= -25):
+            return (vitesse_hz - 0.25)
+        else:
+            return (vitesse_hz)
+    elif (vitesse_hz > 0):
+        if (vitesse_hz >= 25):
+            return (vitesse_hz + 0.25)
+        else:
+            return (vitesse_hz)
+
+######################################################################
+
+#                       BALL MOVEMENT
+
+######################################################################
+
+def update_ball_positions():
+    global coords1, coords2, coords_b, vitesse_hz, vitesse_vt, score_J1, score_J2, b_width, b_height
+    coords_b[0] += vitesse_hz
+    coords_b[1] += vitesse_vt
+    # Collision avec le mur haut ou bas
+    if coords_b[1] <= 0 or coords_b[1] >= 800 - b_height:
+        vitesse_vt *= -1
+        wall.play()
+        if vitesse_hz <= 24.75:
+            vitesse_hz += 0.25
+
+    # Collision avec la raquette de gauche (J1)
+    if (coords1[0] <= coords_b[0] <= coords1[0] + width) and (coords1[1] - 15 <= coords_b[1] <= coords1[1] + height):
+        vitesse_hz *= -1
+        vitesse_hz = change_speed(vitesse_hz)
+        paddle.play()
+        if -25 < vitesse_vt <= 25:
+            vitesse_vt += 1
+            a = randint(1, 3)
+            if a == 1:
+                vitesse_vt *= -1
+            elif randint(1, 13) == 5:
+                vitesse_vt = 0
+                vitesse_hz += 3
+
+    # Collision avec la raquette de droite (J2)
+    if (coords2[0] <= coords_b[0] + b_width <= coords2[0] + width) and (coords2[1] <= coords_b[1] + b_height <= coords2[1] + height + 15):
+        vitesse_hz *= -1
+        vitesse_hz = change_speed(vitesse_hz)
+        paddle.play()
+        if -25 < vitesse_vt <= 25:
+            vitesse_vt += 1
+            a = randint(1, 3)
+            if a == 1:
+                vitesse_vt *= -1
+            elif randint(1, 10) == 5:
+                vitesse_vt = 0
+
+    # But pour le joueur 1
+    if coords_b[0] >= 800 - b_width:
+        score_J1 += 1
+        score.play()
+        coords_b = [387, 375]
+        vitesse_vt = 0
+        vitesse_hz = -3 if vitesse_hz < 0 else 3
+    # But pour le joueur 2
+    elif coords_b[0] <= 0:
+        score_J2 += 1
+        score.play()
+        coords_b = [387, 375]
+        vitesse_vt = 0
+        vitesse_hz = -3 if vitesse_hz < 0 else 3
+    background.coords(ball, coords_b[0], coords_b[1], coords_b[0] + b_width, coords_b[1] + b_height)
+    if score_J1 != 15 and score_J2 != 15:
+        fps_counter.update()
+        window.after(7, update_ball_positions)
+
+
+
+update_score()
+update_p_positions()
+update_ball_positions()
+window.mainloop()
