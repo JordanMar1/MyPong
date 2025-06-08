@@ -9,7 +9,9 @@ Le but est de créer une reproduction du jeu **PONG** en python grâce aux modul
 
 ./pong (format)
 
-format: - b pour *bot*
+format:
+
+        - b pour *bot*
 
         - fb pour *full bot*
 
